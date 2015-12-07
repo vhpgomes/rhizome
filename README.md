@@ -1,184 +1,51 @@
-# Set up
+# My step-by-step
 
-## Prerequisites
+This was done in a fresh install of Ubuntu Desktop 15.10.
 
-1. [Node][] >= 0.10.0
-2. VirtualBox
+### Install NodeJS (based on [this](https://github.com/nodejs/node-v0.x-archive/wiki/Installing-Node.js-via-package-manager))
+* curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -
+* sudo apt-get install --yes nodejs
 
-## Building technical documentation
+### Install docker (based on [this](https://docs.docker.com/engine/installation/ubuntulinux/))
+* sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+* Open /etc/apt/sources.list.d/docker.list in your favourite editor, eg:
+	* sudo vim /etc/apt/sources.list.d/docker.list
+* Add the line (for Ubuntu 15.04):
+	* deb https://apt.dockerproject.org/repo ubuntu-vivid main
+* **OR** Add the line (for Ubuntu 15.10):
+	* deb https://apt.dockerproject.org/repo ubuntu-wily main
+* Save and close the file
+* sudo apt-get update
+* sudo apt-get purge lxc-docker
+* sudo apt-get install linux-image-extra-$(uname -r)
+* sudo apt-get install docker-engine
+* sudo service docker start
 
-1. cd docs
-2. make clean
-3. make html
-4. Docs files now available here: docs/_build/html
+### Install docker-compose (based on [this](https://docs.docker.com/compose/install/))
+* sudo su -
+* curl -L https://github.com/docker/compose/releases/download/1.5.2/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+* chmod +x /usr/local/bin/docker-compose
+* curl -L https://raw.githubusercontent.com/docker/compose/$(docker-compose --version | awk 'NR==1{print $NF}')/contrib/completion/bash/docker-compose > /etc/bash_completion.d/docker-compose
+* exit
 
-## Coding Standards
+### Install ruby and sass
+* sudo apt-get install ruby
+* sudo gem install sass
 
-##### Python
-[PEP8](https://www.python.org/dev/peps/pep-0008/)
+### Get the source code (use your forked project, if any).
 
-##### JavaScript
-[Standard](http://standardjs.com/rules.html)
+* git clone -b development https://github.com/unicef/rhizome.git
+* bump the version of the node-sass package to 3.4.2 in the <rhizome-repository>/webapp/package.json file
+* rename the file <rhizome-repository>/webapp/src/component/CsvMenuItem.jsx to <rhizome-repository>/webapp/src/component/CSVMenuItem.jsx
 
-run `$ standard` from `webapp` folder to lint once, or `$ npm run standard` from the same folder to watch for changes.
+### Start the dockelets
+* got to <rhizome-repository>
+* sudo docker-compose build
+* sudo docker-compose up
 
-## Setting up the development environment
-
-### Docker
-
-Prerequisites
-
-  1. VirtualBox
-
-for OSX:
-```
-$ brew update
-$ brew tap phinze/homebrew-cask
-$ brew install brew-cask
-$ brew cask install virtualbox
-```
-
-
-[static-files]: https://docs.djangoproject.com/en/1.7/howto/static-files/)
-
-
-Install Docker Machine. In Mac OS X you could install via `brew`
-
-```
-$ brew install docker-machine docker-compose
-```
-Initialise Docker environment
-
-```
-$ docker-machine create -d virtualbox dev
-$ docker-machine start dev
-```
-Add `eval "$(docker-machine env dev)"` into .bashrc file
-
-In Mac OS X, forward the port to host
-
-```
-$ VBoxManage controlvm dev natpf1 "django,tcp,127.0.0.1,8000,,8000"
-```
-Navigate to repository directory, de-comment Line.8 `ENV CHINESE_LOCAL_PIP_CONFIG="--index-url http://pypi.douban.com/simple --trusted-host pypi.douban.com"` to use Chinese pip mirror.
-
-Run
-
-```
-$ docker-compose build && docker-compose up
-```
-Entry Docker instance
-
-```
-$ docker exec -it rhizome_rhizome_1 bash
-```
-
-The app is hosted at http://localhost:8000
-
-### Installing frontend dependencies
-
-Note - in order to do development on the front end within docker, you will need to install npm outside over your docker, ( see below ) and run `gulp dev` in order to for the front end build to watch and build new code.
-
-Go to `webapp/` folder
-
-```
-$ npm install -g gulp
-$ npm install
-```
-
-## Populating Data ##
-Use the following script to pull the production database and sync it with your local
-
-```
-$ ./bin/sync_prod_data.sh
-```
-
-
-## Frontend development
-
-The default `dev` task runs `clean`, `copy`, `sass` and `browserify`, so that if you simply execute:
-```
-$ gulp dev```
-from the command line within the `webapp` folder it will build the entire frontend for development and watch for any changes.
-
-
-## Running Tests ##
-
-##### backend:
-```
-$ python manage.py test --settings=rhizome.settings_test
-```
-
-##### frontend:
-```
-$ cd webapp && gulp mocha
-```
-
-## Deploying ##
-
-when spinning up a new ubuntu instance nstall the following dependencies :
-
-```
-$ sudo apt-get update
-$ sudo apt-get install apache2 --fix-missing
-$ sudo apt-get install unzip --fix-missing
-$ sudo apt-get install python-pip --fix-missing
-$ sudo apt-get install python-pandas --fix-missing
-$ sudo apt-get install python-dev
-$ sudo apt-get install libpq-dev
-$ sudo apt-get install postgresql-9.3
-$ sudo apt-get install python-psycopg2
-$ sudo apt-get install libapache2-mod-wsgi
-sudo apt-get install apache2 apache2 apache2-mpm-prefork apache2-utils libexpat1 ssl-cert
-```
-
-to set up the db..
-
-```
-$ CREATE USER djangoapp WITH PASSWORD 'somepassword' SUPERUSER LOGIN;
-```
-
-then create the directory for the rhizome django app, and static files
-```
-$ sudo mkdir /var/www/apps/
-$ sudo mkdir /var/www/apps/rhizome/
-```
-
-# Serving the Django Application with Apache.
-
-You'll need to configure Apache and WSGI on whatever server you're deploying to,
-and set up a PostgreSQL database for the application first. Make sure that
-Apache is configured to use the
-[prefork MPM](https://httpd.apache.org/docs/2.4/mpm.html); the worker and event
-MPMs result in incorrect responses returned for requests when multiple requests
-are made to the server.
-
-For more information on deploying [Django][] applications, see the
-[Django documentation](https://docs.djangoproject.com/en/1.8/howto/deployment/wsgi/).
-
-You will also want to set up apache to server the files in the /static and
-/media directories.
-
-### Serving Static files
-
-The frontend files can be served statically by any webserver. Make sure that
-the `STATIC_URL` setting in the backend's `settings.py` is set to wherever you
-deploy the static files. ([Read more about static files in Django.][static-files])
-
-[static-files]: https://docs.djangoproject.com/en/1.7/howto/static-files/)
-
-## package
-
-Create `dist/rhizome.zip` which contains `requirements.txt` and all files
-
-
-[Django]: https://djangoproject.com/
-[Node]: http://nodejs.org/
-[PIP]: https://pip.pypa.io/en/latest/
-[PostgreSQL]: http://www.postgresql.org/
-[Python]: http://python.org
-[Virtualenv]: https://virtualenv.pypa.io/en/latest/
-[Virtualenvwrapper]: https://virtualenvwrapper.readthedocs.org/en/latest/
-
-
-## test slack integration
+### Developing
+* go to <rhizome-repository>/webapp
+* sudo npm install -g gulp
+* sudo npm install -g node-gyp
+* npm install
+* gulp dev
